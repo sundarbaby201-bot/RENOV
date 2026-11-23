@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Add Product - RENVO</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/auth.css" />
+  </head>
+  <body class="dash-page">
+    <header class="dash-topbar" id="dashTopbar"></header>
+
+    <main class="dash-main" style="max-width: 880px;">
+      <a href="/seller-dashboard.html" class="detail-back" style="margin-bottom: var(--space-2);">&larr; Back to Dashboard</a>
+
+      <section class="section-card" style="padding: var(--space-4);">
+        <h1 style="font-size: 1.6rem; margin-bottom: 0.25rem;">List Your Product</h1>
+        <p class="section-sub">Fill in the details below and upload four photos. Buyers will see your listing in Explore Gadgets.</p>
+
+        <div class="demo-banner" role="note" style="margin-bottom: var(--space-3);">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          <span><strong>Demo storage:</strong> Your listing is saved in this browser only (localStorage + IndexedDB). It is not permanent cloud storage.</span>
+        </div>
+
+        <form id="productForm" novalidate>
+          <!-- ===== Product Information ===== -->
+          <h2 style="font-size: 1.15rem; margin: var(--space-3) 0 var(--space-2);">Product Information</h2>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="f-name">Product Name <span class="req">*</span></label>
+              <input type="text" id="f-name" class="form-control" placeholder="e.g. iPhone 13 Pro 128GB" />
+              <span class="field-error" id="err-name"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="f-brand">Brand <span class="req">*</span></label>
+              <input type="text" id="f-brand" class="form-control" placeholder="e.g. Apple" />
+              <span class="field-error" id="err-brand"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="f-category">Category <span class="req">*</span></label>
+              <select id="f-category" class="form-control">
+                <option value="">Select a category…</option>
+              </select>
+              <span class="field-error" id="err-category"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="f-model">Model Number <span class="req">*</span></label>
+              <input type="text" id="f-model" class="form-control" placeholder="e.g. A2483" />
+              <span class="field-error" id="err-model"></span>
+            </div>
+
+            <div class="form-group form-full">
+              <label for="f-desc">Product Description <span class="req">*</span></label>
+              <textarea id="f-desc" class="form-control" rows="4" placeholder="Describe condition, usage, any defects…"></textarea>
+              <span class="field-error" id="err-desc"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="f-purchaseDate">Purchase Date <span class="req">*</span></label>
+              <input type="date" id="f-purchaseDate" class="form-control" />
+              <span class="field-error" id="err-purchaseDate"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="f-daysUsed">Days Used (auto-calculated)</label>
+              <input type="text" id="f-daysUsed" class="form-control" readonly placeholder="Calculated from purchase date" />
+            </div>
+
+            <div class="form-group">
+              <label for="f-originalPrice">Original Purchase Price (₹) <span class="req">*</span></label>
+              <input type="number" id="f-originalPrice" class="form-control" placeholder="e.g. 99900" min="1" />
+              <span class="field-error" id="err-originalPrice"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="f-sellingPrice">Expected Selling Price (₹) <span class="req">*</span></label>
+              <input type="number" id="f-sellingPrice" class="form-control" placeholder="e.g. 54900" min="1" />
+              <span class="field-error" id="err-sellingPrice"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="f-condition">Product Condition <span class="req">*</span></label>
+              <select id="f-condition" class="form-control">
+                <option value="">Select condition…</option>
+                <option value="Like New">Like New</option>
+                <option value="Excellent">Excellent</option>
+                <option value="Good">Good</option>
+                <option value="Fair">Fair</option>
+              </select>
+              <span class="field-error" id="err-condition"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="f-accessories">Accessories Included <span class="req">*</span></label>
+              <input type="text" id="f-accessories" class="form-control" placeholder="e.g. Box, charger, cable" />
+              <span class="field-error" id="err-accessories"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="f-location">Seller Location <span class="req">*</span></label>
+              <input type="text" id="f-location" class="form-control" placeholder="e.g. Mumbai, India" />
+              <span class="field-error" id="err-location"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="f-email">Contact Email <span class="req">*</span></label>
+              <input type="email" id="f-email" class="form-control" placeholder="you@example.com" />
+              <span class="field-error" id="err-email"></span>
+            </div>
+          </div>
+
+          <!-- ===== Photo Uploads ===== -->
+          <h2 style="font-size: 1.15rem; margin: var(--space-4) 0 var(--space-1);">Product Photos</h2>
+          <p class="section-sub" style="margin-bottom: var(--space-2);">
+            Upload exactly four photos — one for each angle. All four are mandatory. Accepted formats: JPG, JPEG, PNG, WEBP.
+          </p>
+
+          <div class="photo-grid" id="photoGrid">
+            <!-- Front -->
+            <div class="photo-slot" data-slot="0">
+              <div class="photo-preview" id="preview-0">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <div class="photo-label">Front View <span class="req">*</span></div>
+              <div class="photo-actions">
+                <button type="button" class="btn btn-outline photo-btn" data-action="select" data-slot="0">Choose Photo</button>
+                <button type="button" class="btn btn-outline photo-btn photo-replace" data-action="replace" data-slot="0" hidden>Replace</button>
+              </div>
+              <span class="field-error photo-err" id="err-photo-0"></span>
+              <input type="file" id="file-0" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" hidden />
+            </div>
+            <!-- Back -->
+            <div class="photo-slot" data-slot="1">
+              <div class="photo-preview" id="preview-1">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <div class="photo-label">Back View <span class="req">*</span></div>
+              <div class="photo-actions">
+                <button type="button" class="btn btn-outline photo-btn" data-action="select" data-slot="1">Choose Photo</button>
+                <button type="button" class="btn btn-outline photo-btn photo-replace" data-action="replace" data-slot="1" hidden>Replace</button>
+              </div>
+              <span class="field-error photo-err" id="err-photo-1"></span>
+              <input type="file" id="file-1" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" hidden />
+            </div>
+            <!-- Left -->
+            <div class="photo-slot" data-slot="2">
+              <div class="photo-preview" id="preview-2">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <div class="photo-label">Left Side View <span class="req">*</span></div>
+              <div class="photo-actions">
+                <button type="button" class="btn btn-outline photo-btn" data-action="select" data-slot="2">Choose Photo</button>
+                <button type="button" class="btn btn-outline photo-btn photo-replace" data-action="replace" data-slot="2" hidden>Replace</button>
+              </div>
+              <span class="field-error photo-err" id="err-photo-2"></span>
+              <input type="file" id="file-2" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" hidden />
+            </div>
+            <!-- Right -->
+            <div class="photo-slot" data-slot="3">
+              <div class="photo-preview" id="preview-3">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <div class="photo-label">Right Side View <span class="req">*</span></div>
+              <div class="photo-actions">
+                <button type="button" class="btn btn-outline photo-btn" data-action="select" data-slot="3">Choose Photo</button>
+                <button type="button" class="btn btn-outline photo-btn photo-replace" data-action="replace" data-slot="3" hidden>Replace</button>
+              </div>
+              <span class="field-error photo-err" id="err-photo-3"></span>
+              <input type="file" id="file-3" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" hidden />
+            </div>
+          </div>
+
+          <!-- ===== Actions ===== -->
+          <div class="form-actions" style="margin-top: var(--space-3);">
+            <button type="button" class="btn btn-outline" id="reviewBtn">Review Listing</button>
+            <button type="submit" class="btn btn-primary" id="publishBtn">Publish Listing</button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <!-- Review modal -->
+    <div class="modal-overlay" id="reviewModal" aria-hidden="true">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="reviewTitle" style="max-width: 600px; text-align: left;">
+        <button class="modal-close" id="reviewClose" aria-label="Close">&times;</button>
+        <h3 id="reviewTitle">Review Your Listing</h3>
+        <p class="modal-sub">Please confirm the details below before publishing.</p>
+        <div id="reviewBody" style="margin-bottom: var(--space-2);"></div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-outline" id="reviewBack">Edit</button>
+          <button type="button" class="btn btn-primary" id="reviewPublish">Confirm & Publish</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success modal -->
+    <div class="modal-overlay" id="successModal" aria-hidden="true">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="successTitle">
+        <button class="modal-close" id="successClose" aria-label="Close">&times;</button>
+        <div style="width:60px;height:60px;margin:0 auto var(--space-2);border-radius:50%;background:var(--success);color:#fff;display:flex;align-items:center;justify-content:center;">
+          <svg viewBox="0 0 24 24" fill="none" width="30" height="30"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h3 id="successTitle">Listing Published!</h3>
+        <p class="modal-sub">Your product is now live and visible to buyers in Explore Gadgets.</p>
+        <div id="successId" style="font-size:0.85rem;color:var(--gray-500);margin-bottom:var(--space-2);"></div>
+        <div class="form-actions">
+          <a href="/seller-dashboard.html#listings" class="btn btn-outline">Go to My Listings</a>
+          <a href="/buyer-dashboard.html#explore" class="btn btn-primary">View in Explore</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script type="module" src="/auth.js"></script>
+    <script type="module" src="/products.js"></script>
+    <script type="module" src="/dashboard.js"></script>
+    <script type="module">
+      /* Add Product page logic (Vanilla JS) — DEMO only */
+      const { requireSession, showToast, isEmail } = window.RENVO;
+      const {
+        CATEGORIES,
+        addListing,
+        generateProductId,
+        saveImage,
+      } = window.RENVO_DATA;
+
+      const PHOTO_LABELS = ["Front View", "Back View", "Left Side View", "Right Side View"];
+      const ACCEPTED = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+
+      // selectedFiles[slot] = File (or null)
+      const selectedFiles = [null, null, null, null];
+      let isPublishing = false;
+      let pendingListing = null; // built during review, finalized on confirm
+
+      const session = requireSession();
+      if (session) {
+        renderDashTopbar("seller");
+        initAddProduct();
+      }
+
+      function initAddProduct() {
+        // Populate categories.
+        const catSelect = document.getElementById("f-category");
+        CATEGORIES.forEach((cat) => {
+          const opt = document.createElement("option");
+          opt.value = cat;
+          opt.textContent = cat;
+          catSelect.appendChild(opt);
+        });
+
+        // Pre-fill contact email from session.
+        document.getElementById("f-email").value = session.email || "";
+
+        // Auto-calculate days used from purchase date.
+        document.getElementById("f-purchaseDate").addEventListener("change", updateDaysUsed);
+        document.getElementById("f-purchaseDate").addEventListener("input", updateDaysUsed);
+
+        // Photo slot buttons.
+        document.querySelectorAll("#photoGrid .photo-slot").forEach((slotEl) => {
+          const slot = Number(slotEl.dataset.slot);
+          slotEl.querySelector('[data-action="select"]').addEventListener("click", () => {
+            document.getElementById("file-" + slot).click();
+          });
+          slotEl.querySelector('[data-action="replace"]').addEventListener("click", () => {
+            document.getElementById("file-" + slot).click();
+          });
+          document.getElementById("file-" + slot).addEventListener("change", (e) => handleFileSelect(slot, e));
+        });
+
+        // Review + Publish buttons.
+        document.getElementById("reviewBtn").addEventListener("click", openReview);
+        document.getElementById("publishBtn").addEventListener("click", (e) => {
+          e.preventDefault();
+          openReview();
+        });
+        document.getElementById("productForm").addEventListener("submit", (e) => {
+          e.preventDefault();
+          openReview();
+        });
+
+        // Review modal handlers.
+        document.getElementById("reviewBack").addEventListener("click", () => closeModalEl(document.getElementById("reviewModal")));
+        document.getElementById("reviewPublish").addEventListener("click", () => {
+          closeModalEl(document.getElementById("reviewModal"));
+          publishProduct();
+        });
+        document.getElementById("reviewClose").addEventListener("click", () => closeModalEl(document.getElementById("reviewModal")));
+
+        // Success modal.
+        document.getElementById("successClose").addEventListener("click", () => closeModalEl(document.getElementById("successModal")));
+
+        // Close modals on overlay click / Escape.
+        [document.getElementById("reviewModal"), document.getElementById("successModal")].forEach((m) => {
+          m.addEventListener("click", (e) => { if (e.target === m) closeModalEl(m); });
+        });
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") {
+            closeModalEl(document.getElementById("reviewModal"));
+            closeModalEl(document.getElementById("successModal"));
+          }
+        });
+      }
+
+      // Calculate days used from purchase date to today.
+      function updateDaysUsed() {
+        const dateStr = document.getElementById("f-purchaseDate").value;
+        const out = document.getElementById("f-daysUsed");
+        if (!dateStr) { out.value = ""; return; }
+        const purchase = new Date(dateStr);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (purchase > today) {
+          out.value = "";
+          return;
+        }
+        const diffMs = today - purchase;
+        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        out.value = days + " days";
+      }
+
+      // Handle file selection for a photo slot.
+      function handleFileSelect(slot, e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        // Validate type.
+        if (!ACCEPTED.includes(file.type) && !/\.(jpg|jpeg|png|webp)$/i.test(file.name)) {
+          showFieldError("err-photo-" + slot, "Please choose a JPG, JPEG, PNG or WEBP image.");
+          e.target.value = "";
+          return;
+        }
+        showFieldError("err-photo-" + slot, "");
+        selectedFiles[slot] = file;
+        // Show preview.
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const preview = document.getElementById("preview-" + slot);
+          preview.innerHTML = `<img src="${ev.target.result}" alt="${PHOTO_LABELS[slot]}" />`;
+          preview.classList.add("has-image");
+          // Swap "Choose" -> "Replace".
+          document.querySelector(`.photo-slot[data-slot="${slot}"] [data-action="select"]`).hidden = true;
+          document.querySelector(`.photo-slot[data-slot="${slot}"] [data-action="replace"]`).hidden = false;
+        };
+        reader.readAsDataURL(file);
+      }
+
+      // ---- Validation ----
+      function validateAll() {
+        let ok = true;
+        const fields = [
+          { id: "name", label: "Product Name" },
+          { id: "brand", label: "Brand" },
+          { id: "category", label: "Category" },
+          { id: "model", label: "Model Number" },
+          { id: "desc", label: "Product Description" },
+          { id: "accessories", label: "Accessories Included" },
+          { id: "location", label: "Seller Location" },
+          { id: "email", label: "Contact Email" },
+        ];
+        fields.forEach((f) => {
+          const el = document.getElementById("f-" + f.id);
+          const val = el.value.trim();
+          if (!val) {
+            showFieldError("err-" + f.id, f.label + " is required.");
+            el.classList.add("invalid");
+            ok = false;
+          } else {
+            showFieldError("err-" + f.id, "");
+            el.classList.remove("invalid");
+          }
+        });
+
+        // Email format.
+        const emailEl = document.getElementById("f-email");
+        if (emailEl.value.trim() && !isEmail(emailEl.value.trim())) {
+          showFieldError("err-email", "Please enter a valid email address.");
+          emailEl.classList.add("invalid");
+          ok = false;
+        }
+
+        // Purchase date.
+        const dateEl = document.getElementById("f-purchaseDate");
+        if (!dateEl.value) {
+          showFieldError("err-purchaseDate", "Purchase date is required.");
+          dateEl.classList.add("invalid");
+          ok = false;
+        } else {
+          const purchase = new Date(dateEl.value);
+          const today = new Date();
+          today.setHours(23, 59, 59, 999);
+          if (purchase > today) {
+            showFieldError("err-purchaseDate", "Purchase date cannot be in the future.");
+            dateEl.classList.add("invalid");
+            ok = false;
+          } else {
+            showFieldError("err-purchaseDate", "");
+            dateEl.classList.remove("invalid");
+          }
+        }
+
+        // Prices.
+        const origEl = document.getElementById("f-originalPrice");
+        const sellEl = document.getElementById("f-sellingPrice");
+        const orig = Number(origEl.value);
+        const sell = Number(sellEl.value);
+        if (!orig || orig <= 0) {
+          showFieldError("err-originalPrice", "Original price must be greater than zero.");
+          origEl.classList.add("invalid");
+          ok = false;
+        } else { showFieldError("err-originalPrice", ""); origEl.classList.remove("invalid"); }
+        if (!sell || sell <= 0) {
+          showFieldError("err-sellingPrice", "Expected selling price must be greater than zero.");
+          sellEl.classList.add("invalid");
+          ok = false;
+        } else { showFieldError("err-sellingPrice", ""); sellEl.classList.remove("invalid"); }
+
+        // Condition.
+        const condEl = document.getElementById("f-condition");
+        if (!condEl.value) {
+          showFieldError("err-condition", "Please select a product condition.");
+          condEl.classList.add("invalid");
+          ok = false;
+        } else { showFieldError("err-condition", ""); condEl.classList.remove("invalid"); }
+
+        // Photos — all four mandatory.
+        for (let i = 0; i < 4; i++) {
+          if (!selectedFiles[i]) {
+            showFieldError("err-photo-" + i, PHOTO_LABELS[i] + " photo is required.");
+            ok = false;
+          } else {
+            showFieldError("err-photo-" + i, "");
+          }
+        }
+
+        return ok;
+      }
+
+      function showFieldError(errId, msg) {
+        const el = document.getElementById(errId);
+        if (el) el.textContent = msg;
+      }
+
+      // ---- Build listing object from form ----
+      function buildListing() {
+        const id = generateProductId();
+        const dateStr = document.getElementById("f-purchaseDate").value;
+        const purchase = new Date(dateStr);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const days = Math.max(0, Math.floor((today - purchase) / (1000 * 60 * 60 * 24)));
+        const orig = Number(document.getElementById("f-originalPrice").value);
+        const sell = Number(document.getElementById("f-sellingPrice").value);
+
+        return {
+          id,
+          name: document.getElementById("f-name").value.trim(),
+          brand: document.getElementById("f-brand").value.trim(),
+          model: document.getElementById("f-model").value.trim(),
+          category: document.getElementById("f-category").value,
+          description: document.getElementById("f-desc").value.trim(),
+          purchaseDate: dateStr,
+          daysUsed: days,
+          originalPrice: orig,
+          price: sell,
+          condition: document.getElementById("f-condition").value,
+          accessories: document.getElementById("f-accessories").value.trim(),
+          location: document.getElementById("f-location").value.trim(),
+          contactEmail: document.getElementById("f-email").value.trim(),
+          seller: {
+            name: session.fullName || "Seller",
+            email: document.getElementById("f-email").value.trim(),
+            phone: "—",
+            rating: 5.0,
+          },
+          status: "available",
+          userListing: true,
+          hasPhotos: true,
+          createdAt: Date.now(),
+        };
+      }
+
+      // ---- Review modal ----
+      function openReview() {
+        if (!validateAll()) {
+          showToast("Please fix the highlighted fields and upload all four photos.");
+          return;
+        }
+        const data = buildListing();
+        pendingListing = data;
+        const body = document.getElementById("reviewBody");
+        body.innerHTML = `
+          <div class="review-row"><span>Product</span><strong>${data.name}</strong></div>
+          <div class="review-row"><span>Brand / Model</span><strong>${data.brand} · ${data.model}</strong></div>
+          <div class="review-row"><span>Category</span><strong>${data.category}</strong></div>
+          <div class="review-row"><span>Condition</span><strong>${data.condition}</strong></div>
+          <div class="review-row"><span>Days Used</span><strong>${data.daysUsed} days</strong></div>
+          <div class="review-row"><span>Original Price</span><strong>₹${data.originalPrice.toLocaleString("en-IN")}</strong></div>
+          <div class="review-row"><span>Expected Price</span><strong>₹${data.price.toLocaleString("en-IN")}</strong></div>
+          <div class="review-row"><span>Location</span><strong>${data.location}</strong></div>
+          <div class="review-row"><span>Contact Email</span><strong>${data.contactEmail}</strong></div>
+          <div class="review-row" style="display:block;"><span style="display:block;margin-bottom:0.25rem;">Description</span><span style="color:var(--gray-700);">${data.description}</span></div>
+          <div class="review-row" style="display:block;"><span style="display:block;margin-bottom:0.25rem;">Photos</span><span style="color:var(--success);font-weight:600;">All 4 photos selected ✓</span></div>
+        `;
+        openModalEl(document.getElementById("reviewModal"));
+      }
+
+      // ---- Publish ----
+      async function publishProduct() {
+        if (isPublishing) return; // prevent duplicate clicks
+        if (!pendingListing) return;
+        isPublishing = true;
+        const publishBtn = document.getElementById("publishBtn");
+        publishBtn.disabled = true;
+        publishBtn.textContent = "Publishing…";
+
+        try {
+          const data = pendingListing;
+          // Save photos to IndexedDB.
+          for (let i = 0; i < 4; i++) {
+            await saveImage(data.id + "__" + i, selectedFiles[i]);
+          }
+          // Save metadata to localStorage (addListing unshifts to front).
+          addListing(data);
+
+          // Show success.
+          document.getElementById("successId").textContent = "Product ID: " + data.id;
+          openModalEl(document.getElementById("successModal"));
+          showToast("Listing published successfully!");
+          // Reset form to prevent re-publish.
+          document.getElementById("productForm").reset();
+          selectedFiles.fill(null);
+          for (let i = 0; i < 4; i++) {
+            const preview = document.getElementById("preview-" + i);
+            preview.innerHTML = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+            preview.classList.remove("has-image");
+            document.querySelector(`.photo-slot[data-slot="${i}"] [data-action="select"]`).hidden = false;
+            document.querySelector(`.photo-slot[data-slot="${i}"] [data-action="replace"]`).hidden = true;
+          }
+          pendingListing = null;
+        } catch (err) {
+          showToast("Could not save listing. Please try again.");
+        } finally {
+          isPublishing = false;
+          publishBtn.disabled = false;
+          publishBtn.textContent = "Publish Listing";
+        }
+      }
+
+      // ---- Modal helpers ----
+      function openModalEl(modal) { modal.classList.add("open"); modal.setAttribute("aria-hidden", "false"); }
+      function closeModalEl(modal) { modal.classList.remove("open"); modal.setAttribute("aria-hidden", "true"); }
+    </script>
+  </body>
+</html>

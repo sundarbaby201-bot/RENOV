@@ -300,8 +300,74 @@ function generateProductId() {
 // Reset listings back to all "available" and clear uploaded images (useful for demos).
 function resetListings() {
   const seeded = SAMPLE_PRODUCTS.map((p) => ({ ...p, status: "available" }));
-  saveListings(seeded);
-  clearAllImages();
+  // Keep user-uploaded listings intact on reset so sellers don't lose work;
+  // only re-seed the sample products.
+  const current = getListings();
+  const userUploads = current.filter((p) => p.userListing);
+  saveListings([...userUploads, ...seeded]);
+}
+
+/* ----- 4b. IndexedDB image storage (uploaded product photos) -------- */
+/* We store raw image Blobs in IndexedDB (large binary data doesn't belong
+   in localStorage). Each photo is keyed by `${productId}__${slot}` where
+   slot is 0..3 (front, back, left, right). Demo only — browser storage. */
+
+function openImageDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DATA_KEYS.images, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains("images")) {
+        db.createObjectStore("images", { keyPath: "id" });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// Save (or replace) an image blob under a key.
+async function saveImage(key, blob) {
+  const db = await openImageDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("images", "readwrite");
+    tx.objectStore("images").put({ id: key, blob });
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// Read an image blob by key (or null if missing).
+async function getImageBlob(key) {
+  const db = await openImageDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("images", "readonly");
+    const req = tx.objectStore("images").get(key);
+    req.onsuccess = () => resolve(req.result ? req.result.blob : null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// Delete a single image by key.
+async function deleteImage(key) {
+  const db = await openImageDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("images", "readwrite");
+    tx.objectStore("images").delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// Wipe all stored images (used by the demo reset, if ever needed).
+async function clearAllImages() {
+  const db = await openImageDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("images", "readwrite");
+    tx.objectStore("images").clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
 }
 
 // ----- Offers -----
@@ -396,4 +462,10 @@ window.RENVO_DATA = {
   seedSampleOffersIfNeeded,
   formatPrice,
   productImageHTML,
+  addListing,
+  generateProductId,
+  saveImage,
+  getImageBlob,
+  deleteImage,
+  clearAllImages,
 };

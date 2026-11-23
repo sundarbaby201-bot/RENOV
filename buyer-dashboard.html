@@ -144,6 +144,7 @@
         getOffers,
         formatPrice,
         productImageHTML,
+        getImageBlob,
       } = window.RENVO_DATA;
 
       const session = requireSession();
@@ -293,7 +294,7 @@
             const card = document.createElement("article");
             card.className = "product-card";
             card.innerHTML = `
-              <div class="prod-img">
+              <div class="prod-img" id="buyer-img-${p.id}">
                 <span class="prod-badge">${p.condition}</span>
                 ${productImageHTML(p.category, 0)}
               </div>
@@ -309,6 +310,17 @@
               </div>
             `;
             grid.appendChild(card);
+
+            // If this listing has real uploaded photos, load the front one.
+            if (p.userListing && p.hasPhotos) {
+              getImageBlob(p.id + "__0").then((blob) => {
+                if (blob) {
+                  const url = URL.createObjectURL(blob);
+                  const imgEl = document.getElementById("buyer-img-" + p.id);
+                  if (imgEl) imgEl.innerHTML = `<span class="prod-badge">${p.condition}</span><img src="${url}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover;" />`;
+                }
+              });
+            }
           });
         }
 

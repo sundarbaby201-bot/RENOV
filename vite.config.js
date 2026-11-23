@@ -11,6 +11,7 @@ const pages = [
   "buyer-dashboard",
   "seller-dashboard",
   "product-detail",
+  "add-product",
 ];
 
 export default defineConfig({

@@ -70,7 +70,7 @@
     <script type="module">
       /* Product detail page logic (Vanilla JS) — DEMO only */
       const { requireSession, showToast } = window.RENVO;
-      const { getListingById, addOffer, formatPrice, productImageHTML } = window.RENVO_DATA;
+      const { getListingById, addOffer, formatPrice, productImageHTML, getImageBlob } = window.RENVO_DATA;
 
       const session = requireSession();
       if (session) {
@@ -104,11 +104,11 @@
             ? '<span class="status-badge sold" style="margin-bottom:0.5rem;">Sold Out</span>'
             : "";
 
-        // Build 4 gallery "images" (icon tiles with different gradients).
+        // Build 4 gallery "images" (icon tiles with different gradients by default).
         const thumbs = [0, 1, 2, 3]
           .map(
             (i) =>
-              `<div class="gallery-thumb ${i === 0 ? "active" : ""}" data-idx="${i}">${productImageHTML(product.category, i)}</div>`
+              `<div class="gallery-thumb ${i === 0 ? "active" : ""}" data-idx="${i}" id="thumb-${i}">${productImageHTML(product.category, i)}</div>`
           )
           .join("");
 
@@ -160,14 +160,38 @@
 
         // Gallery thumbnail switching.
         const galleryMain = document.getElementById("galleryMain");
+        // Real photo URLs for each slot (filled if this listing has uploads).
+        const realPhotos = [null, null, null, null];
+
         document.querySelectorAll(".gallery-thumb").forEach((thumb) => {
           thumb.addEventListener("click", () => {
             document.querySelectorAll(".gallery-thumb").forEach((t) => t.classList.remove("active"));
             thumb.classList.add("active");
             const idx = Number(thumb.dataset.idx);
-            galleryMain.innerHTML = productImageHTML(product.category, idx);
+            if (realPhotos[idx]) {
+              galleryMain.innerHTML = `<img src="${realPhotos[idx]}" alt="${product.name}" style="width:100%;height:100%;object-fit:cover;" />`;
+            } else {
+              galleryMain.innerHTML = productImageHTML(product.category, idx);
+            }
           });
         });
+
+        // If this listing has real uploaded photos, load all 4 from IndexedDB.
+        if (product.userListing && product.hasPhotos) {
+          [0, 1, 2, 3].forEach((i) => {
+            getImageBlob(product.id + "__" + i).then((blob) => {
+              if (blob) {
+                const url = URL.createObjectURL(blob);
+                realPhotos[i] = url;
+                const thumbEl = document.getElementById("thumb-" + i);
+                if (thumbEl) thumbEl.innerHTML = `<img src="${url}" alt="${product.name}" style="width:100%;height:100%;object-fit:cover;" />`;
+                if (i === 0) {
+                  galleryMain.innerHTML = `<img src="${url}" alt="${product.name}" style="width:100%;height:100%;object-fit:cover;" />`;
+                }
+              }
+            });
+          });
+        }
 
         // ---- Make an Offer modal ----
         const offerModal = document.getElementById("offerModal");

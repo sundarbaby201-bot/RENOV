@@ -121,6 +121,7 @@
         resetListings,
         formatPrice,
         productImageHTML,
+        getImageBlob,
         DATA_KEYS,
       } = window.RENVO_DATA;
 
@@ -135,9 +136,9 @@
       }
 
       function initSellerDashboard() {
-        // "Selling Your Product" is a placeholder — upload not built yet.
+        // "Selling Your Product" opens the Add Product page.
         document.getElementById("listBtn").addEventListener("click", () => {
-          showToast("Product upload will be implemented in the next development stage.");
+          window.location.href = "/add-product.html";
         });
 
         // Reset all demo data (listings + offers) back to the sample state.
@@ -168,7 +169,7 @@
                 : '<span class="status-badge sold">Sold Out</span>';
 
             card.innerHTML = `
-              <div class="prod-img">${productImageHTML(p.category, 0)}</div>
+              <div class="prod-img" id="seller-img-${p.id}">${productImageHTML(p.category, 0)}</div>
               <div class="listing-body">
                 <span class="prod-cat">${p.category}</span>
                 <h3 class="prod-name">${p.name}</h3>
@@ -178,11 +179,23 @@
                   ${badge}
                 </div>
                 <div class="listing-actions">
+                  <a href="/product-detail.html?id=${p.id}" class="btn btn-outline" data-action="view">View Details</a>
                   <button type="button" class="btn btn-outline" data-action="sold" data-id="${p.id}" ${p.status === "sold" ? "disabled" : ""}>Mark Sold</button>
                 </div>
               </div>
             `;
             grid.appendChild(card);
+
+            // If this listing has real uploaded photos, load the front one.
+            if (p.userListing && p.hasPhotos) {
+              getImageBlob(p.id + "__0").then((blob) => {
+                if (blob) {
+                  const url = URL.createObjectURL(blob);
+                  const imgEl = document.getElementById("seller-img-" + p.id);
+                  if (imgEl) imgEl.innerHTML = `<img src="${url}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover;" />`;
+                }
+              });
+            }
           });
 
           // Wire "Mark Sold" buttons.
