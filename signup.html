@@ -15,7 +15,6 @@
     <link rel="stylesheet" href="/auth.css" />
   </head>
   <body class="auth-page">
-    <!-- Compact top bar with logo + back to home -->
     <header class="auth-topbar">
       <div class="container">
         <a href="/index.html" class="logo" aria-label="RENVO home">
@@ -33,88 +32,45 @@
           <p>Join the marketplace for pre-owned electronics.</p>
         </div>
 
-        <!-- Demo banner is injected by auth.js -->
         <div id="demoBanner"></div>
 
-        <!-- Registration form -->
         <form id="signupForm" novalidate>
-          <!-- Full Name -->
           <div class="form-group">
             <label for="fullName">Full Name</label>
-            <input
-              type="text"
-              id="fullName"
-              name="fullName"
-              class="form-control"
-              placeholder="e.g. Alex Morgan"
-              autocomplete="name"
-            />
+            <input type="text" id="fullName" name="fullName" class="form-control" placeholder="e.g. Alex Morgan" autocomplete="name" />
             <span class="field-error" id="err-fullName"></span>
           </div>
 
-          <!-- Email -->
           <div class="form-group">
             <label for="email">Email Address</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              class="form-control"
-              placeholder="you@example.com"
-              autocomplete="email"
-            />
+            <input type="email" id="email" name="email" class="form-control" placeholder="you@example.com" autocomplete="email" />
             <span class="field-error" id="err-email"></span>
           </div>
 
-          <!-- Phone -->
           <div class="form-group">
             <label for="phone">Phone Number</label>
-            <input
-              type="tel"
-              id="phone"
-              name="phone"
-              class="form-control"
-              placeholder="+1 555 123 4567"
-              autocomplete="tel"
-            />
+            <input type="tel" id="phone" name="phone" class="form-control" placeholder="+1 555 123 4567" autocomplete="tel" />
             <span class="field-error" id="err-phone"></span>
           </div>
 
-          <!-- Password -->
           <div class="form-group">
             <label for="password">Password</label>
             <div class="password-field">
-              <input
-                type="password"
-                id="password"
-                name="password"
-                class="form-control"
-                placeholder="Create a password"
-                autocomplete="new-password"
-              />
+              <input type="password" id="password" name="password" class="form-control" placeholder="Create a password (min 6 characters)" autocomplete="new-password" />
               <button type="button" class="toggle-password" aria-label="Show password">Show</button>
             </div>
             <span class="field-error" id="err-password"></span>
           </div>
 
-          <!-- Confirm Password -->
           <div class="form-group">
             <label for="confirmPassword">Confirm Password</label>
             <div class="password-field">
-              <input
-                type="password"
-                id="confirmPassword"
-                name="confirmPassword"
-                class="form-control"
-                placeholder="Re-enter your password"
-                autocomplete="new-password"
-              />
+              <input type="password" id="confirmPassword" name="confirmPassword" class="form-control" placeholder="Re-enter your password" autocomplete="new-password" />
               <button type="button" class="toggle-password" aria-label="Show password">Show</button>
             </div>
             <span class="field-error" id="err-confirmPassword"></span>
           </div>
 
-          <!-- Terms checkbox -->
           <div class="checkbox-row">
             <input type="checkbox" id="terms" name="terms" />
             <label for="terms">
@@ -126,7 +82,7 @@
           </div>
           <span class="field-error" id="err-terms"></span>
 
-          <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+          <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Create Account</button>
         </form>
 
         <p class="auth-foot">
@@ -136,26 +92,25 @@
       </div>
     </main>
 
-    <!-- Toast -->
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script type="module" src="/auth.js"></script>
     <script type="module">
-      /* Signup page logic (Vanilla JS) */
-      const { showToast, setAccount, isEmail, isPhone, setupPasswordToggles, generateOtp, demoBannerHTML, STORAGE_KEYS, redirectIfLoggedIn } = window.RENVO;
+      /* Signup page logic (Vanilla JS) — real Supabase Auth */
+      const { showToast, isEmail, isPhone, setupPasswordToggles, redirectIfLoggedIn, supabase, isCloudConfigured } = window.RENVO;
 
-      // If already logged in, go straight to role selection.
       redirectIfLoggedIn();
-
-      // Insert the demo banner.
-      document.getElementById("demoBanner").innerHTML = demoBannerHTML();
-
-      // Wire show/hide password buttons.
+      document.getElementById("demoBanner").innerHTML = window.RENVO.demoBannerHTML();
       setupPasswordToggles();
 
       const form = document.getElementById("signupForm");
+      const submitBtn = document.getElementById("submitBtn");
 
-      // Helper: show an error under a field and mark it invalid.
+      // Store the email for the OTP page to use after redirect.
+      function setPendingEmail(email) {
+        sessionStorage.setItem("renvo_pending_email", email);
+      }
+
       function setError(fieldId, message) {
         const errEl = document.getElementById("err-" + fieldId);
         const field = document.getElementById(fieldId);
@@ -163,10 +118,9 @@
         if (field) field.classList.toggle("invalid", Boolean(message));
       }
 
-      form.addEventListener("submit", (e) => {
-        e.preventDefault(); // stop the page from reloading
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
 
-        // Read all field values
         const fullName = document.getElementById("fullName").value.trim();
         const email = document.getElementById("email").value.trim();
         const phone = document.getElementById("phone").value.trim();
@@ -176,85 +130,82 @@
 
         let valid = true;
 
-        // --- Required fields ---
-        if (!fullName) {
-          setError("fullName", "Please enter your full name.");
-          valid = false;
-        } else {
-          setError("fullName", "");
-        }
+        if (!fullName) { setError("fullName", "Please enter your full name."); valid = false; }
+        else setError("fullName", "");
 
-        // --- Email format ---
-        if (!email) {
-          setError("email", "Please enter your email address.");
-          valid = false;
-        } else if (!isEmail(email)) {
-          setError("email", "Please enter a valid email address.");
-          valid = false;
-        } else {
-          setError("email", "");
-        }
+        if (!email) { setError("email", "Please enter your email address."); valid = false; }
+        else if (!isEmail(email)) { setError("email", "Please enter a valid email address."); valid = false; }
+        else setError("email", "");
 
-        // --- Phone number ---
-        if (!phone) {
-          setError("phone", "Please enter your phone number.");
-          valid = false;
-        } else if (!isPhone(phone)) {
-          setError("phone", "Please enter a valid phone number (7-15 digits).");
-          valid = false;
-        } else {
-          setError("phone", "");
-        }
+        if (!phone) { setError("phone", "Please enter your phone number."); valid = false; }
+        else if (!isPhone(phone)) { setError("phone", "Please enter a valid phone number (7-15 digits)."); valid = false; }
+        else setError("phone", "");
 
-        // --- Password (min 6 characters for demo) ---
-        if (!password) {
-          setError("password", "Please create a password.");
-          valid = false;
-        } else if (password.length < 6) {
-          setError("password", "Password must be at least 6 characters.");
-          valid = false;
-        } else {
-          setError("password", "");
-        }
+        if (!password) { setError("password", "Please create a password."); valid = false; }
+        else if (password.length < 6) { setError("password", "Password must be at least 6 characters."); valid = false; }
+        else setError("password", "");
 
-        // --- Confirm password must match ---
-        if (!confirmPassword) {
-          setError("confirmPassword", "Please confirm your password.");
-          valid = false;
-        } else if (confirmPassword !== password) {
-          setError("confirmPassword", "Passwords do not match.");
-          valid = false;
-        } else {
-          setError("confirmPassword", "");
-        }
+        if (!confirmPassword) { setError("confirmPassword", "Please confirm your password."); valid = false; }
+        else if (confirmPassword !== password) { setError("confirmPassword", "Passwords do not match."); valid = false; }
+        else setError("confirmPassword", "");
 
-        // --- Terms checkbox must be checked ---
-        if (!terms) {
-          setError("terms", "You must accept the Terms and Conditions.");
-          valid = false;
-        } else {
-          setError("terms", "");
-        }
+        if (!terms) { setError("terms", "You must accept the Terms and Conditions."); valid = false; }
+        else setError("terms", "");
 
         if (!valid) {
           showToast("Please fix the highlighted fields.");
           return;
         }
 
-        // Save the demo account in localStorage (NOT secure — demo only).
-        setAccount({ fullName, email, phone, password });
+        // Check cloud configuration.
+        if (!isCloudConfigured) {
+          showToast("Backend is not configured. Please check your Supabase setup.");
+          return;
+        }
 
-        // Create a demo OTP code and remember that we are in the "register" flow.
-        const otp = generateOtp();
-        localStorage.setItem(STORAGE_KEYS.pendingOtp, otp);
-        localStorage.setItem(STORAGE_KEYS.pendingFlow, "register");
+        // Disable the button to prevent duplicate submissions.
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Creating account…";
 
-        showToast("Account created! Redirecting to OTP verification…");
+        try {
+          // Call Supabase Auth signUp with user metadata.
+          // Supabase will send a 6-digit OTP code to the email address.
+          const { data, error } = await supabase.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+              data: {
+                full_name: fullName,
+                phone: phone,
+              },
+            },
+          });
 
-        // Go to the OTP page after a short delay so the toast is visible.
-        setTimeout(() => {
-          window.location.href = "/otp.html";
-        }, 900);
+          if (error) {
+            // Check for duplicate registration.
+            if (error.message.includes("already") || error.message.includes("registered") || error.message.includes("exists")) {
+              setError("email", "An account with this email already exists.");
+              showToast("This email is already registered. Try logging in.");
+            } else {
+              showToast(error.message);
+            }
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Create Account";
+            return;
+          }
+
+          // Save the email for the OTP page.
+          setPendingEmail(email);
+
+          showToast("Account created! A verification code has been sent to your email.");
+          setTimeout(() => {
+            window.location.href = "/otp.html";
+          }, 1200);
+        } catch (err) {
+          showToast("Something went wrong. Please try again.");
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Create Account";
+        }
       });
     </script>
   </body>

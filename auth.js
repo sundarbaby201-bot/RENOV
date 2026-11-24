@@ -1,23 +1,27 @@
 /* ============================================
    RENVO - Auth helper (Vanilla JS, shared)
-   Used by signup, login, otp, role-selection and dashboards.
-   Beginner-friendly + commented.
+   Used by signup, login, otp, role-selection, dashboards, and add-product.
    --------------------------------------------
-   IMPORTANT: This is a FRONTEND DEMO only.
-   It uses localStorage to fake an account and login state.
-   It is NOT secure authentication and must never be used
-   to protect real data. A real backend is required later.
+   REAL AUTHENTICATION via Supabase Auth.
+   - Email/password signup with OTP email verification.
+   - Email/password login.
+   - Password reset via email.
+   - Session persistence handled by Supabase (localStorage-backed).
+   - Role (buyer/seller) stored in localStorage as a UI preference.
+   --------------------------------------------
+   SECURITY: No service role keys are used here. Only the anon key
+   (already in the Supabase client) is used for client-side auth.
+   Never store plain-text passwords — Supabase Auth handles hashing.
    ============================================ */
 
-/* ----- 1. Storage keys (names we use in localStorage) ------------- */
+import { supabase, isCloudConfigured, getCloudUser } from "./supabase-client.js";
+
+/* ----- 1. Local storage keys (UI preferences only) ----- */
 const STORAGE_KEYS = {
-  account: "renvo_demo_account", // the registered demo account
-  session: "renvo_demo_session", // current login session
-  pendingOtp: "renvo_pending_otp", // the OTP code waiting to be verified
-  pendingFlow: "renvo_pending_flow", // "register" | "login"
+  role: "renvo_selected_role", // buyer | seller — UI preference only
 };
 
-/* ----- 2. Small DOM helpers --------------------------------------- */
+/* ----- 2. Small DOM helpers ----- */
 
 // Show a toast message. Each auth page has a #toast element.
 function showToast(message) {
@@ -29,62 +33,22 @@ function showToast(message) {
   showToast._t = setTimeout(() => toast.classList.remove("show"), 2800);
 }
 
-// Read the demo account from localStorage (or null if none).
-function getAccount() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.account));
-  } catch {
-    return null;
-  }
-}
-
-// Save the demo account.
-function setAccount(account) {
-  localStorage.setItem(STORAGE_KEYS.account, JSON.stringify(account));
-}
-
-// Read the current session (or null).
-function getSession() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.session));
-  } catch {
-    return null;
-  }
-}
-
-// Save a session and optionally set the chosen role.
-function setSession(session) {
-  localStorage.setItem(STORAGE_KEYS.session, JSON.stringify(session));
-}
-
-// Clear the session (logout).
-function clearSession() {
-  localStorage.removeItem(STORAGE_KEYS.session);
-}
-
-/* ----- 3. Validation helpers -------------------------------------- */
-// These return an error string when invalid, or "" when valid.
-
+/* ----- 3. Validation helpers (kept from original) ----- */
 function isEmail(value) {
-  // Simple, readable email pattern (good enough for a demo).
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 function isPhone(value) {
-  // Accepts digits, spaces, dashes, parentheses and an optional leading +.
-  // Must contain between 7 and 15 digits.
   const digits = value.replace(/[^\d]/g, "");
   return /^[+\d\s()-]+$/.test(value) && digits.length >= 7 && digits.length <= 15;
 }
 
-/* ----- 4. Show / hide password toggle ----------------------------- */
-// Call once per page. Finds every .password-field and wires its toggle.
+/* ----- 4. Show / hide password toggle ----- */
 function setupPasswordToggles() {
   document.querySelectorAll(".password-field").forEach((field) => {
     const input = field.querySelector("input");
     const toggle = field.querySelector(".toggle-password");
     if (!input || !toggle) return;
-
     toggle.addEventListener("click", () => {
       const isPassword = input.type === "password";
       input.type = isPassword ? "text" : "password";
@@ -94,33 +58,127 @@ function setupPasswordToggles() {
   });
 }
 
-/* ----- 5. Generate a random 6-digit demo OTP ---------------------- */
-function generateOtp() {
-  // A number between 100000 and 999999.
-  return String(Math.floor(100000 + Math.random() * 900000));
+/* ----- 5. Session management (real Supabase auth) ----- */
+
+// Cache the current Supabase session synchronously so pages that call
+// requireSession() can work without async/await. Supabase persists the
+// session in localStorage, so we read it on load.
+let cachedSession = null;
+let cachedProfile = null;
+
+// Initialize the cached session from Supabase's stored session.
+async function initCachedSession() {
+  if (!isCloudConfigured) return;
+  try {
+    const { data } = await supabase.auth.getSession();
+    if (data && data.session) {
+      cachedSession = data.session;
+      // Fetch the user's profile (full_name, phone) from the users table.
+      await refreshCachedProfile();
+    } else {
+      cachedSession = null;
+      cachedProfile = null;
+    }
+  } catch {
+    cachedSession = null;
+  }
 }
 
-/* ----- 6. Guard pages that need a session ------------------------- */
-// If the user is not logged in, send them to the login page.
+// Fetch the user's profile row from the `users` table.
+async function refreshCachedProfile() {
+  if (!cachedSession || !cachedSession.user) return;
+  try {
+    const { data } = await supabase
+      .from("users")
+      .select("full_name, email, phone")
+      .eq("id", cachedSession.user.id)
+      .maybeSingle();
+    cachedProfile = data || null;
+  } catch {
+    cachedProfile = null;
+  }
+}
+
+// Listen for auth state changes to keep the cache in sync.
+// This handles login, logout, token refresh, and session restore.
+if (isCloudConfigured) {
+  supabase.auth.onAuthStateChange((event, session) => {
+    // Wrap async work in an IIFE to avoid deadlock (per Supabase docs).
+    (async () => {
+      if (event === "SIGNED_OUT") {
+        cachedSession = null;
+        cachedProfile = null;
+        localStorage.removeItem(STORAGE_KEYS.role);
+      } else if (session) {
+        cachedSession = session;
+        await refreshCachedProfile();
+      }
+    })();
+  });
+}
+
+// Initialize the session cache immediately on script load.
+initCachedSession();
+
+/* ----- 6. Synchronous session access (for dashboard pages) ----- */
+
+// Returns a session-like object synchronously, or null.
+// This mirrors the old demo API shape: { email, fullName, role }.
+function getSession() {
+  if (!cachedSession || !cachedSession.user) return null;
+  const user = cachedSession.user;
+  const fullName = cachedProfile ? cachedProfile.full_name : (user.user_metadata?.full_name || "");
+  return {
+    email: user.email || "",
+    fullName: fullName || "",
+    phone: cachedProfile ? cachedProfile.phone : (user.user_metadata?.phone || ""),
+    role: localStorage.getItem(STORAGE_KEYS.role) || null,
+    uid: user.id,
+    createdAt: user.created_at,
+  };
+}
+
+// Guard pages that need a session. If not logged in, redirect to login.
+// Returns the session object or null.
 function requireSession() {
-  if (!getSession()) {
+  const session = getSession();
+  if (!session) {
     window.location.href = "/login.html";
     return null;
   }
-  return getSession();
+  return session;
 }
 
-// If already logged in, skip auth pages (optional helper).
+// If already logged in, skip auth pages (go to role selection).
 function redirectIfLoggedIn() {
   if (getSession()) {
     window.location.href = "/role-selection.html";
   }
 }
 
-/* ----- 7. Shared header/footer markup injection ------------------- */
-// Keeps the auth pages short and consistent.
+// Set the selected role (buyer/seller) — stored as a UI preference.
+function setSelectedRole(role) {
+  localStorage.setItem(STORAGE_KEYS.role, role);
+}
 
-// Demo banner HTML reused on every auth page.
+// Get the selected role.
+function getSelectedRole() {
+  return localStorage.getItem(STORAGE_KEYS.role) || null;
+}
+
+// Logout: sign out from Supabase and clear local preferences.
+async function clearSession() {
+  if (isCloudConfigured) {
+    try {
+      await supabase.auth.signOut();
+    } catch {}
+  }
+  cachedSession = null;
+  cachedProfile = null;
+  localStorage.removeItem(STORAGE_KEYS.role);
+}
+
+/* ----- 7. Demo banner (kept for pages that still show it) ----- */
 function demoBannerHTML() {
   return `
     <div class="demo-banner" role="note">
@@ -128,25 +186,34 @@ function demoBannerHTML() {
         <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>
         <path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
       </svg>
-      <span><strong>Demo mode:</strong> This is a frontend demo only. No real SMS or email is sent, and accounts are stored locally in your browser. Not secure authentication.</span>
+      <span><strong>Secure auth:</strong> Registration and login use Supabase Auth. Email verification is sent via Supabase's email service.</span>
     </div>
   `;
 }
 
-// Expose helpers globally so each page's inline script can use them.
+/* ----- 8. Profile fetch helper (async, for pages that need it) ----- */
+async function fetchProfile() {
+  if (!cachedSession) return null;
+  await refreshCachedProfile();
+  return cachedProfile;
+}
+
+/* ----- Expose globally ----- */
 window.RENVO = {
   STORAGE_KEYS,
   showToast,
-  getAccount,
-  setAccount,
-  getSession,
-  setSession,
-  clearSession,
   isEmail,
   isPhone,
   setupPasswordToggles,
-  generateOtp,
+  getSession,
   requireSession,
   redirectIfLoggedIn,
+  clearSession,
+  setSelectedRole,
+  getSelectedRole,
   demoBannerHTML,
+  fetchProfile,
+  // Expose the supabase client for pages that need direct access.
+  supabase,
+  isCloudConfigured,
 };
